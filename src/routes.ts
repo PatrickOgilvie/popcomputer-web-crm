@@ -1,16 +1,34 @@
 import { action, render, RequireAuthLayer, RequireGuestLayer } from '@popcomputer/web/effect'
 import { betterAuthLogoutAction } from '@popcomputer/web/auth'
-import { signIn, signUp } from './actions/auth'
-import { showDashboard } from './actions/dashboard'
 import {
-  createProject,
-  deleteProject,
-  editProject,
-  listProjects,
-  showProject,
-  showPublicProject,
-  updateProject,
-} from './actions/projects'
+  completeTask,
+  createTask,
+  deleteActivity,
+  listTasks,
+  logCompanyActivity,
+  logContactActivity,
+  logDealActivity,
+} from './actions/activities'
+import { signIn, signUp } from './actions/auth'
+import {
+  createCompany,
+  deleteCompany,
+  editCompany,
+  listCompanies,
+  showCompany,
+  updateCompany,
+} from './actions/companies'
+import {
+  createContact,
+  deleteContact,
+  editContact,
+  listContacts,
+  newContact,
+  showContact,
+  updateContact,
+} from './actions/contacts'
+import { showDashboard } from './actions/dashboard'
+import { createDeal, deleteDeal, editDeal, moveDeal, newDeal, showBoard, showDeal, updateDeal } from './actions/deals'
 import { listSessions, revokeOtherSessions, revokeSession } from './actions/sessions'
 import { routes } from './app'
 import { paths } from './paths'
@@ -24,19 +42,43 @@ routes
 
 routes.post(paths.logout, betterAuthLogoutAction({ redirectTo: paths.login }))
 
-// Anyone may see a project its owner made public.
-routes.get(paths.publicProject, showPublicProject)
-
 routes
   .provide(RequireAuthLayer)
   .get(paths.dashboard, showDashboard)
-  .get(paths.projects, listProjects)
-  .get(paths.newProject, action(render('Projects/Create')))
-  .post(paths.projects, createProject, { form: paths.newProject })
-  .get(paths.project, showProject)
-  .get(paths.editProject, editProject)
-  .put(paths.project, updateProject, { form: paths.editProject })
-  .delete(paths.project, deleteProject)
+
+  .get(paths.pipeline, showBoard)
+  .get(paths.newDeal, newDeal)
+  .post(paths.pipeline, createDeal, { form: paths.newDeal })
+  .get(paths.deal, showDeal)
+  .get(paths.editDeal, editDeal)
+  .put(paths.deal, updateDeal, { form: paths.editDeal })
+  .delete(paths.deal, deleteDeal)
+  .patch(paths.dealStage, moveDeal, { form: paths.pipeline })
+  .post(paths.dealActivities, logDealActivity, { form: paths.deal })
+
+  .get(paths.contacts, listContacts)
+  .get(paths.newContact, newContact)
+  .post(paths.contacts, createContact, { form: paths.newContact })
+  .get(paths.contact, showContact)
+  .get(paths.editContact, editContact)
+  .put(paths.contact, updateContact, { form: paths.editContact })
+  .delete(paths.contact, deleteContact)
+  .post(paths.contactActivities, logContactActivity, { form: paths.contact })
+
+  .get(paths.companies, listCompanies)
+  .get(paths.newCompany, action(render('Companies/Create')))
+  .post(paths.companies, createCompany, { form: paths.newCompany })
+  .get(paths.company, showCompany)
+  .get(paths.editCompany, editCompany)
+  .put(paths.company, updateCompany, { form: paths.editCompany })
+  .delete(paths.company, deleteCompany)
+  .post(paths.companyActivities, logCompanyActivity, { form: paths.company })
+
+  .get(paths.tasks, listTasks)
+  .post(paths.tasks, createTask)
+  .patch(paths.activity, completeTask, { form: paths.tasks })
+  .delete(paths.activity, deleteActivity, { form: paths.tasks })
+
   .get(paths.sessions, listSessions)
   .delete(paths.otherSessions, revokeOtherSessions)
   .delete(paths.session, revokeSession, { form: paths.sessions })

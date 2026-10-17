@@ -1,35 +1,32 @@
 <img src="src/assets/popcomputer.png" alt="Popcomputer" width="374" height="69">
 
-# @popcomputer/web demo
+# A CRM on @popcomputer/web
 
-A complete application on @popcomputer/web, to start yours from.
+An example application made from the
+[template](https://github.com/PatrickOgilvie/popcomputer-web-demo): a small
+CRM with a drag-and-drop pipeline, contacts, companies, a timeline on every
+record, and tasks.
 
 React pages served by Inertia from a Cloudflare Worker, with Effect actions,
 D1 and Better Auth, built on
 [@popcomputer/web](https://github.com/PatrickOgilvie/popcomputer-web). Its
 [README](https://github.com/PatrickOgilvie/popcomputer-web#readme) explains
-each part; this repository shows them working together. Use it as a
-template, or deploy it as it is.
-
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/PatrickOgilvie/popcomputer-web-demo)
+each part; this repository shows them working together on something bigger
+than the template's projects.
 
 ```ts
-// src/actions/projects.ts
-export const updateProject = action(
+// src/actions/deals.ts: a card dropped on the board
+export const moveDeal = action(
   Effect.gen(function* () {
     // Only its owner's: the binding is ownedBy 'userId', so another member's is a 404.
-    const project = yield* bound('project')
-    const input = yield* validateRequest(ProjectForm)
-    const updatedAt = DateTime.toDateUtc(yield* DateTime.now)
+    const deal = yield* bound('deal')
+    const { stage, beforeId } = yield* validateRequest(DealMove)
+    // ...the column's order, with the deal in its new place...
 
-    yield* dbMutation((db) =>
-      db.update(projects)
-        .set({ ...input, updatedAt })
-        .where(and(eq(projects.id, project.id), eq(projects.userId, project.userId)))
-    )
-    yield* flash('success', 'Project saved.')
+    // The whole column is numbered again in one batch: all of it lands, or none.
+    yield* dbBatch((db) => order.map((id, position) => db.update(deals).set({ position }) /* ... */))
 
-    return yield* redirect(paths.project, { project: project.id })
+    return yield* back(paths.pipeline)
   })
 )
 ```
@@ -42,19 +39,27 @@ export const updateProject = action(
 
 ## What it does
 
-- **Accounts.** Register, sign in and sign out through Better Auth. Attempts
-  are limited per address by Cloudflare's Rate Limiting binding and per
-  account in D1, and a daily cron clears the counts.
-- **Projects.** Create, edit and delete projects only their owner can see.
-  Another member's project is the same 404 as a missing one.
-- **A public page.** Anyone can read a project its owner made public, at
-  `/showcase/projects/{id}`, until the next request after it is made private.
-- **Signed-in devices.** List the devices signed in to the account, and sign
-  any other one, or all of them, out.
+- **A pipeline board.** Deals in six stages, lead to won or lost, each
+  column totalled. Drag a card to another stage or up and down its column,
+  with a mouse, a long press, or the keyboard (Space on a card's handle,
+  then the arrow keys). Each move is saved in one D1 batch. Won and lost
+  deals stay on the board for 30 days.
+- **Deals.** A value, a stage, an expected close day, a company and a
+  contact. A deal's page moves it along the stages in one click, and keeps
+  when it was won or lost.
+- **Contacts and companies.** The people you sell to and where they work,
+  searchable, each page with its deals and people.
+- **A timeline on every record.** Log notes, calls, emails and meetings on a
+  deal, a contact or a company, and add tasks with a due day.
+- **Tasks.** Every task, from every record, in one list: overdue, today,
+  upcoming. Tick one off from anywhere it shows.
+- **A dashboard.** The open pipeline, a forecast weighted by each stage's
+  odds, what was won in the last 30 days, what's closing soon and what's due.
+- **Accounts and signed-in devices**, as the template has them: Better Auth,
+  with attempts limited per address and per account.
 
-Each page past sign-in, and the public project page, ends with an "Under the
-hood" panel naming the action that answers it and what the framework
-guarantees there.
+Each member's CRM is their own. Each page ends with an "Under the hood" panel
+naming the action that answers it and what the framework guarantees there.
 
 ## How it's built
 
@@ -73,19 +78,43 @@ guarantees there.
 
 - **An action reads its record from the URL** rather than querying for it,
   and its binding says who may load it, so no action checks: another
-  member's project is the 404 a missing one is, from the lookup's own query.
+  member's deal is the 404 a missing one is, from the lookup's own query.
 
   ```ts
   // src/app.ts
   bindings: {
-    project: routeBinding(schema.projects, { ownedBy: 'userId' }),
-    publicProject: routeBinding(schema.projects, { publicWhen: { visibility: 'public' } }),
+    deal: routeBinding(schema.deals, { ownedBy: 'userId' }),
+    contact: routeBinding(schema.contacts, { ownedBy: 'userId' }),
+    company: routeBinding(schema.companies, { ownedBy: 'userId' }),
+    activity: routeBinding(schema.activities, { ownedBy: 'userId' }),
     session: routeBinding(schema.session, { ownedBy: 'userId' }),
   },
   ```
 
+- **A record a form names by id belongs to the same member, in the
+  database.** A deal's form picks its company and contact, and a contact's
+  its company. Triggers in `migrations/0001_owner_rules.sql` refuse another
+  member's, whatever writes the row, and `constraintFieldErrors` shows the
+  refusal beside the field:
+
+  ```ts
+  // src/actions/shared.ts
+  export const ownerFieldErrors = constraintFieldErrors({
+    contacts_company_owner: { companyId: 'Choose one of your companies.' },
+    deals_company_owner: { companyId: 'Choose one of your companies.' },
+    deals_contact_owner: { contactId: 'Choose one of your contacts.' },
+  })
+  ```
+
+- **A note or a task takes its record from the route it's logged on**
+  (`POST /deals/{deal}/activities`), never from the form.
+
 - **A failed form goes back to its page** with its errors beside the fields,
   and the page keeps everything it showed.
+
+- **A due day is a day, not a moment.** Due and close days are kept as
+  `YYYY-MM-DD` and compared with today in the browser, in the viewer's own
+  time zone.
 
 The rest of the tree:
 
@@ -261,9 +290,10 @@ bun run db:seed
 ```
 
 It deletes everything in the local database, applies the migrations to a
-new one, then runs `src/seed.ts`. The template's seed creates a member to
-sign in as, `ada@example.com` with the password `at least twelve characters`,
-with a private project and a public one. A seed exports a function that
+new one, then runs `src/seed.ts`. Its seed creates a member to sign in as,
+`ada@example.com` with the password `at least twelve characters`, with seven
+companies, eleven people, deals in every stage, and a timeline with tasks due
+around today. A seed exports a function that
 takes the database and the Worker's bindings, and inserts with Drizzle, so
 `bun run check` reports a seed a schema change has broken:
 
@@ -274,7 +304,7 @@ export async function seed(db: Database, env: Bindings): Promise<void> {
   const auth = createAuth({ db, secret: env.BETTER_AUTH_SECRET, baseURL: 'http://localhost' })
   const { user } = await auth.api.signUpEmail({ body: { ...seedMember } })
 
-  await db.insert(projects).values([{ userId: user.id, name: 'Apollo' }])
+  await db.insert(companies).values({ userId: user.id, name: 'Northwind Traders' })
 }
 ```
 
@@ -427,7 +457,7 @@ It builds the app, uploads it as a version that takes none of the live
 app's requests, checks it answers, and prints its address, such as
 `https://1a2b3c4d-my-app.my-subdomain.workers.dev`. `bun run deploy` makes
 the same code live. A preview runs on the live app's database and secrets:
-what someone does there, signing up or editing a project, they do to the
+what someone does there, signing up or moving a deal, they do to the
 live app's data. It never applies migrations, so it says when the database
 on Cloudflare hasn't had one yet: pages that need it fail on the preview
 until a deploy applies it. The app has to be deployed once first, and it

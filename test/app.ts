@@ -22,7 +22,7 @@ export type Env = Awaited<ReturnType<typeof freshEnv>>
 export const password = 'correct horse battery'
 
 /** A request as Inertia sends a form: its fields as JSON. */
-export function send(method: 'POST' | 'PUT' | 'DELETE', fields: Record<string, unknown> = {}): RequestInit {
+export function send(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', fields: Record<string, unknown> = {}): RequestInit {
   return {
     method,
     headers: { 'X-Inertia': 'true', 'Content-Type': 'application/json' },
@@ -58,13 +58,50 @@ export async function signIn(env: Env, email: string): Promise<TestBrowser> {
   return browser
 }
 
-/** Create a project through the form and return its id. */
-export async function createProject(browser: TestBrowser, fields: Record<string, unknown> = {}): Promise<string> {
-  const res = await browser.request(paths.projects, send('POST', { name: 'Apollo', description: null, visibility: 'private', ...fields }))
+/** The id at the end of a redirect to a record's page, such as `/deals/{deal}`. */
+function createdId(res: Response, prefix: string): string {
   const location = res.headers.get('Location') ?? ''
-  const match = /^\/projects\/([^/]+)$/.exec(location)
+  const match = new RegExp(`^${prefix}/([^/]+)$`).exec(location)
 
   expect(match).not.toBeNull()
 
   return match?.[1] ?? ''
+}
+
+/** Add a company through the form and return its id. */
+export async function createCompany(browser: TestBrowser, fields: Record<string, unknown> = {}): Promise<string> {
+  const res = await browser.request(paths.companies, send('POST', { name: 'Northwind', website: null, industry: null, notes: null, ...fields }))
+
+  return createdId(res, paths.companies)
+}
+
+/** Add a contact through the form and return its id. */
+export async function createContact(browser: TestBrowser, fields: Record<string, unknown> = {}): Promise<string> {
+  const res = await browser.request(paths.contacts, send('POST', {
+    name: 'Grace Hopper',
+    email: null,
+    phone: null,
+    title: null,
+    companyId: null,
+    notes: null,
+    ...fields,
+  }))
+
+  return createdId(res, paths.contacts)
+}
+
+/** Add a deal through the form and return its id. */
+export async function createDeal(browser: TestBrowser, fields: Record<string, unknown> = {}): Promise<string> {
+  const res = await browser.request(paths.pipeline, send('POST', {
+    title: 'Rollout',
+    value: 1000,
+    stage: 'lead',
+    expectedCloseOn: null,
+    companyId: null,
+    contactId: null,
+    notes: null,
+    ...fields,
+  }))
+
+  return createdId(res, paths.pipeline)
 }

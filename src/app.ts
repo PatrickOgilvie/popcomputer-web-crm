@@ -43,8 +43,10 @@ export const web = setupWeb(new Hono<Env>(), {
   // Each record a path names, and who may load it: another member's record
   // is the 404 a missing one is, so no action has to check.
   bindings: {
-    project: routeBinding(schema.projects, { ownedBy: 'userId' }),
-    publicProject: routeBinding(schema.projects, { publicWhen: { visibility: 'public' } }),
+    deal: routeBinding(schema.deals, { ownedBy: 'userId' }),
+    contact: routeBinding(schema.contacts, { ownedBy: 'userId' }),
+    company: routeBinding(schema.companies, { ownedBy: 'userId' }),
+    activity: routeBinding(schema.activities, { ownedBy: 'userId' }),
     session: routeBinding(schema.session, { ownedBy: 'userId' }),
   },
   pages,

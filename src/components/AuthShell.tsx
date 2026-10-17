@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react'
-import { FolderKanban, Globe, MonitorSmartphone } from 'lucide-react'
+import { KanbanSquare, ListTodo, Users } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import Brand from '~/components/Brand'
@@ -19,21 +19,20 @@ interface AuthShellProps {
 
 const tour = [
   {
-    icon: FolderKanban,
-    title: 'Projects',
+    icon: KanbanSquare,
+    title: 'A pipeline board',
     description:
-      'Create, edit, and delete records stored in Cloudflare D1 and visible only to your account.',
+      'Drag deals from lead to won, with a mouse, a finger or the keyboard. Each move is saved in one D1 batch.',
   },
   {
-    icon: Globe,
-    title: 'Public showcase',
-    description:
-      'Share a project at a public link. Making it private hides it on the very next request.',
+    icon: Users,
+    title: 'Contacts and companies',
+    description: 'The people you sell to and where they work, searchable, each with their deals.',
   },
   {
-    icon: MonitorSmartphone,
-    title: 'Signed-in devices',
-    description: 'See every device signed in to your account and sign any of them out.',
+    icon: ListTodo,
+    title: 'A timeline and tasks',
+    description: 'Log notes, calls and meetings on any record, and keep every task with a due day in one list.',
   },
 ] as const
 
@@ -93,7 +92,7 @@ export default function AuthShell({
       >
         <div>
           <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            @popcomputer/web demo
+            A @popcomputer/web example
           </p>
           <h2 id="demo-tour-title" className="mt-2 text-xl font-semibold text-balance">
             What you can try once you’re in

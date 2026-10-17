@@ -4,17 +4,22 @@ import type { ReactNode } from 'react'
 import AccountMenu from '~/components/AccountMenu'
 import Brand from '~/components/Brand'
 import { buttonClassName } from '~/components/button'
+import { cn } from '~/components/cn'
 import usePageTransitionFocus from '~/components/usePageTransitionFocus'
 import { paths } from '~/paths'
 
 interface LayoutProps {
+  /** `full` lets a page such as the board use the window's whole width. */
+  readonly width?: 'default' | 'full'
   readonly children: ReactNode
 }
 
 const primaryNavigation = [
   { label: 'Dashboard', href: paths.dashboard },
-  { label: 'Projects', href: paths.projects },
-  { label: 'Sessions', href: paths.sessions },
+  { label: 'Pipeline', href: paths.pipeline },
+  { label: 'Contacts', href: paths.contacts },
+  { label: 'Companies', href: paths.companies },
+  { label: 'Tasks', href: paths.tasks },
 ] as const
 
 function isActivePath(currentPath: string, href: string): boolean {
@@ -34,9 +39,9 @@ function PrimaryNavigation({
 }) {
   return (
     <nav aria-label="Primary" className={className}>
-      <ul className="flex gap-1">
+      <ul className="flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {primaryNavigation.map((item) => (
-          <li key={item.href} className="flex-1 sm:flex-none">
+          <li key={item.href} className="shrink-0">
             <Link
               href={item.href}
               className={navLinkClassName}
@@ -52,7 +57,7 @@ function PrimaryNavigation({
 }
 
 /** Application frame: account-aware header, page focus management, content. */
-export default function Layout({ children }: LayoutProps) {
+export default function Layout({ width = 'default', children }: LayoutProps) {
   const page = usePage()
   const user = page.props.auth.user
   const currentPath = page.url.split(/[?#]/)[0] || '/'
@@ -71,10 +76,15 @@ export default function Layout({ children }: LayoutProps) {
       </a>
 
       <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4 sm:px-6 lg:px-8">
+        <div
+          className={cn(
+            'mx-auto flex h-14 items-center gap-6 px-4 sm:px-6 lg:px-8',
+            width === 'full' ? 'max-w-none' : 'max-w-6xl'
+          )}
+        >
           <Brand />
           {user ? (
-            <PrimaryNavigation currentPath={currentPath} className="hidden sm:block" />
+            <PrimaryNavigation currentPath={currentPath} className="hidden md:block" />
           ) : null}
           <div className="ml-auto flex items-center gap-2">
             {user ? (
@@ -97,7 +107,7 @@ export default function Layout({ children }: LayoutProps) {
         {user ? (
           <PrimaryNavigation
             currentPath={currentPath}
-            className="border-t border-zinc-200 px-4 py-2 sm:hidden dark:border-zinc-800"
+            className="border-t border-zinc-200 px-4 py-2 md:hidden dark:border-zinc-800"
           />
         ) : null}
       </header>
@@ -112,7 +122,12 @@ export default function Layout({ children }: LayoutProps) {
         tabIndex={-1}
         className="flex-1 focus:outline-none"
       >
-        <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+        <div
+          className={cn(
+            'mx-auto flex flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:px-8',
+            width === 'full' ? 'max-w-none' : 'max-w-6xl'
+          )}
+        >
           {page.flash.success ? (
             <p
               role="status"

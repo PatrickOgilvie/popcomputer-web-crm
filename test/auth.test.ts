@@ -9,8 +9,8 @@ describe('registering', () => {
     const dashboard = await readPage(await browser.request(paths.dashboard, visit), 'Dashboard')
 
     expect(dashboard.props.auth.user?.email).toBe('ada@example.com')
-    expect(dashboard.props.projectCount).toBe(0)
-    expect(dashboard.props.sessionCount).toBe(1)
+    expect(dashboard.props.stages.every((stage) => stage.count === 0)).toBe(true)
+    expect(dashboard.props.contactCount).toBe(0)
   })
 
   test('refuses a short password beside its field', async () => {
@@ -50,14 +50,14 @@ describe('signing in', () => {
     await register(env, 'Ada')
     const browser = testBrowser(app, env)
 
-    const asked = await browser.request(paths.projects)
+    const asked = await browser.request(paths.pipeline)
 
-    expect(asked.headers.get('Location')).toBe('/login?redirect=%2Fprojects')
+    expect(asked.headers.get('Location')).toBe('/login?redirect=%2Fdeals')
     await readPage(await browser.follow(asked), 'Auth/Login')
 
     const res = await browser.request(paths.login, send('POST', { email: 'ada@example.com', password }))
 
-    expect(res.headers.get('Location')).toBe(paths.projects)
+    expect(res.headers.get('Location')).toBe(paths.pipeline)
   })
 })
 
