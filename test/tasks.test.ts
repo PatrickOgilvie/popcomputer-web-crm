@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { href } from '@popcomputer/web/paths'
 import { readPage, type TestBrowser } from '@popcomputer/web/testing'
 import { paths } from '../src/paths'
-import { createCompany, createContact, createDeal, freshEnv, register, send, visit } from './app'
+import { createCompany, createContact, createDeal, freshEnv, member, send, visit } from './app'
 
 const openTasks = async (browser: TestBrowser) =>
   (await readPage(await browser.request(paths.tasks, visit), 'Tasks/Index')).props
@@ -15,7 +15,7 @@ const dealTimeline = async (browser: TestBrowser, deal: string) =>
 
 describe('the timeline', () => {
   test('logging on a deal goes back to it, newest first, with a message', async () => {
-    const browser = await register(await freshEnv(), 'Ada')
+    const browser = await member(await freshEnv(), 'Ada')
     const deal = await createDeal(browser)
     const logs = href(paths.dealActivities, { deal })
 
@@ -31,7 +31,7 @@ describe('the timeline', () => {
   })
 
   test('an empty entry goes back with the error beside it', async () => {
-    const browser = await register(await freshEnv(), 'Ada')
+    const browser = await member(await freshEnv(), 'Ada')
     const deal = await createDeal(browser)
     await browser.request(href(paths.deal, { deal }), visit)
 
@@ -41,7 +41,7 @@ describe('the timeline', () => {
   })
 
   test('contacts and companies have timelines of their own', async () => {
-    const browser = await register(await freshEnv(), 'Ada')
+    const browser = await member(await freshEnv(), 'Ada')
     const contact = await createContact(browser)
     const company = await createCompany(browser)
 
@@ -56,7 +56,7 @@ describe('the timeline', () => {
   })
 
   test('deleting an entry removes it', async () => {
-    const browser = await register(await freshEnv(), 'Ada')
+    const browser = await member(await freshEnv(), 'Ada')
     const deal = await createDeal(browser)
     await browser.request(href(paths.dealActivities, { deal }), send('POST', { kind: 'note', body: 'Oops', dueOn: null }))
     const [note] = await dealTimeline(browser, deal)
@@ -69,7 +69,7 @@ describe('the timeline', () => {
 
 describe('tasks', () => {
   test('tasks from every record, and the member’s own, are listed by due day with what they’re on', async () => {
-    const browser = await register(await freshEnv(), 'Ada')
+    const browser = await member(await freshEnv(), 'Ada')
     const deal = await createDeal(browser, { title: 'Rollout' })
     const contact = await createContact(browser, { name: 'Grace' })
 
@@ -88,7 +88,7 @@ describe('tasks', () => {
   })
 
   test('ticking a task off moves it to done, and unticking opens it again', async () => {
-    const browser = await register(await freshEnv(), 'Ada')
+    const browser = await member(await freshEnv(), 'Ada')
     await browser.request(paths.tasks, send('POST', { body: 'Send the contract', dueOn: null }))
     const [task] = (await openTasks(browser)).tasks
     const path = href(paths.activity, { activity: task?.id ?? '' })
@@ -105,7 +105,7 @@ describe('tasks', () => {
   })
 
   test('a note can’t be ticked off: only tasks are done', async () => {
-    const browser = await register(await freshEnv(), 'Ada')
+    const browser = await member(await freshEnv(), 'Ada')
     const deal = await createDeal(browser)
     await browser.request(href(paths.dealActivities, { deal }), send('POST', { kind: 'note', body: 'Just a note', dueOn: null }))
     const [note] = await dealTimeline(browser, deal)
@@ -117,8 +117,8 @@ describe('tasks', () => {
 
   test('another member’s task is a 404, and their tasks aren’t listed', async () => {
     const env = await freshEnv()
-    const ada = await register(env, 'Ada')
-    const grace = await register(env, 'Grace')
+    const ada = await member(env, 'Ada')
+    const grace = await member(env, 'Grace')
     await ada.request(paths.tasks, send('POST', { body: 'Ada’s task', dueOn: null }))
     const [task] = (await openTasks(ada)).tasks
     const path = href(paths.activity, { activity: task?.id ?? '' })

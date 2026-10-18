@@ -1,6 +1,9 @@
 import { expect } from 'bun:test'
-import { testBrowser, testEnv, testRateLimiter, type TestBrowser } from '@popcomputer/web/testing'
+import { Redacted } from 'effect'
+import { signedIn, testBrowser, testEnv, testRateLimiter, type TestBrowser } from '@popcomputer/web/testing'
 import { app } from '../src/app'
+import { createDb } from '../src/db'
+import { user } from '../src/schema'
 import { paths } from '../src/paths'
 import { databases } from './databases'
 import '../src/routes'
@@ -8,18 +11,20 @@ import '../src/routes'
 export { app }
 
 /** The Worker's bindings, with a new, empty D1 database. */
-export async function freshEnv() {
-  return testEnv({
+export async function freshBindings() {
+  return {
     DB: await databases.fresh(),
     BETTER_AUTH_SECRET: 'test-only-secret-0123456789abcdef0123456789',
     SIGN_IN_LIMITER: testRateLimiter(),
-    ENVIRONMENT: 'test',
-  })
+    ENVIRONMENT: 'test' as const,
+  }
+}
+
+export async function freshEnv() {
+  return testEnv(await freshBindings())
 }
 
 export type Env = Awaited<ReturnType<typeof freshEnv>>
-
-export const password = 'correct horse battery'
 
 /** A request as Inertia sends a form: its fields as JSON. */
 export function send(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', fields: Record<string, unknown> = {}): RequestInit {
@@ -38,20 +43,42 @@ export function asksToSignIn(res: Response): boolean {
 /** A visit to a page, as Inertia makes it. */
 export const visit: RequestInit = { headers: { 'X-Inertia': 'true' } }
 
-/** A member who registered through the form, signed in on a browser of their own. */
-export async function register(env: Env, name: string, email = `${name.toLowerCase()}@example.com`): Promise<TestBrowser> {
-  const browser = testBrowser(app, env)
-  const res = await browser.request(paths.register, send('POST', { name, email, password }))
+/**
+ * A member with an empty CRM: a user row of their own, signed in as their
+ * session would sign them in. Each member's browser shares `env`'s database.
+ */
+export async function member(env: Env, name: string): Promise<TestBrowser> {
+  if (env.DB === undefined) throw new Error('The test env has no DB.')
+  const now = new Date()
+  const row = {
+    id: crypto.randomUUID(),
+    name,
+    email: `${name.toLowerCase()}@example.com`,
+    emailVerified: false,
+    image: null,
+    createdAt: now,
+    updatedAt: now,
+    isAnonymous: false,
+  }
+  await createDb(env.DB).insert(user).values(row)
+  const session = {
+    id: `session-${row.id}`,
+    token: Redacted.make(`token-${row.id}`),
+    userId: row.id,
+    expiresAt: new Date(now.getTime() + 60 * 60 * 1000),
+    createdAt: now,
+    updatedAt: now,
+    ipAddress: null,
+    userAgent: null,
+  }
 
-  expect(res.headers.get('Location')).toBe(paths.dashboard)
-
-  return browser
+  return testBrowser(app, testEnv(signedIn({ user: row, session }), env))
 }
 
-/** The same member on another device. */
-export async function signIn(env: Env, email: string): Promise<TestBrowser> {
+/** A visitor who starts the demo: a guest of their own, with the sample CRM. */
+export async function startDemo(env: Env): Promise<TestBrowser> {
   const browser = testBrowser(app, env)
-  const res = await browser.request(paths.login, send('POST', { email, password }))
+  const res = await browser.request(paths.login, send('POST'))
 
   expect(res.headers.get('Location')).toBe(paths.dashboard)
 

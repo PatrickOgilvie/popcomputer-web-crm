@@ -3,7 +3,6 @@
 export const paths = {
   dashboard: '/',
   login: '/login',
-  register: '/register',
   logout: '/logout',
 
   pipeline: '/deals',
@@ -27,8 +26,4 @@ export const paths = {
 
   tasks: '/tasks',
   activity: '/activities/{activity}',
-
-  sessions: '/sessions',
-  otherSessions: '/sessions/others',
-  session: '/sessions/{session}',
 } as const

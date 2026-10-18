@@ -4,8 +4,6 @@ import { Schema as S } from 'effect'
 import {
   between,
   checkbox,
-  currentPassword,
-  email,
   isoDate,
   max,
   nullable,
@@ -13,7 +11,6 @@ import {
   nullableString,
   nullableUrl,
   nullableUuid,
-  password,
   requiredString,
 } from '@popcomputer/web/schema'
 
@@ -79,12 +76,3 @@ export const TaskCompletion = S.Struct({ completed: checkbox })
 export const Search = S.Struct({ q: nullableString })
 
 export const TaskFilter = S.Struct({ show: nullable(S.Literals(['open', 'done'])) })
-
-// A password signs in exactly as it was chosen: currentPassword never trims it.
-export const SignIn = S.Struct({ email, password: currentPassword })
-
-export const Register = S.Struct({
-  name,
-  email,
-  password: password({ min: 12, max: 128 }),
-})

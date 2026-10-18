@@ -9,7 +9,7 @@ import {
   logContactActivity,
   logDealActivity,
 } from './actions/activities'
-import { signIn, signUp } from './actions/auth'
+import { startDemo } from './actions/auth'
 import {
   createCompany,
   deleteCompany,
@@ -29,16 +29,14 @@ import {
 } from './actions/contacts'
 import { showDashboard } from './actions/dashboard'
 import { createDeal, deleteDeal, editDeal, moveDeal, newDeal, showBoard, showDeal, updateDeal } from './actions/deals'
-import { listSessions, revokeOtherSessions, revokeSession } from './actions/sessions'
 import { routes } from './app'
 import { paths } from './paths'
 
+// Nobody registers: the sign-in page starts the demo, as a guest.
 routes
   .provide(RequireGuestLayer)
   .get(paths.login, action(render('Auth/Login')))
-  .post(paths.login, signIn)
-  .get(paths.register, action(render('Auth/Register')))
-  .post(paths.register, signUp)
+  .post(paths.login, startDemo)
 
 routes.post(paths.logout, betterAuthLogoutAction({ redirectTo: paths.login }))
 
@@ -78,7 +76,3 @@ routes
   .post(paths.tasks, createTask)
   .patch(paths.activity, completeTask, { form: paths.tasks })
   .delete(paths.activity, deleteActivity, { form: paths.tasks })
-
-  .get(paths.sessions, listSessions)
-  .delete(paths.otherSessions, revokeOtherSessions)
-  .delete(paths.session, revokeSession, { form: paths.sessions })

@@ -4,7 +4,6 @@ import type { PageName } from '@popcomputer/web/effect'
 import type { WebPage } from '@popcomputer/web/react'
 import { createRoot } from 'react-dom/client'
 import Login from './pages/Auth/Login'
-import Register from './pages/Auth/Register'
 import CompaniesIndex from './pages/Companies/Index'
 import CreateCompany from './pages/Companies/Create'
 import EditCompany from './pages/Companies/Edit'
@@ -19,14 +18,12 @@ import CreateDeal from './pages/Deals/Create'
 import EditDeal from './pages/Deals/Edit'
 import ShowDeal from './pages/Deals/Show'
 import ErrorPage from './pages/Errors/Error'
-import SessionsIndex from './pages/Sessions/Index'
 import TasksIndex from './pages/Tasks/Index'
 import { appTitle } from './title'
 
 // Every registered page's component: a page without one is a type error.
 const components: { readonly [Name in PageName]: WebPage<Name> } = {
   'Auth/Login': Login,
-  'Auth/Register': Register,
   Dashboard,
   'Deals/Board': Board,
   'Deals/Create': CreateDeal,
@@ -41,7 +38,6 @@ const components: { readonly [Name in PageName]: WebPage<Name> } = {
   'Companies/Show': ShowCompany,
   'Companies/Edit': EditCompany,
   'Tasks/Index': TasksIndex,
-  'Sessions/Index': SessionsIndex,
 }
 
 const isPage = (name: string): name is PageName => name in components

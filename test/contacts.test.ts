@@ -2,14 +2,14 @@ import { describe, expect, test } from 'bun:test'
 import { href } from '@popcomputer/web/paths'
 import { readPage, type TestBrowser } from '@popcomputer/web/testing'
 import { paths } from '../src/paths'
-import { createCompany, createContact, createDeal, freshEnv, register, send, visit } from './app'
+import { createCompany, createContact, createDeal, freshEnv, member, send, visit } from './app'
 
 const search = async (browser: TestBrowser, path: typeof paths.contacts, q: string) =>
   (await readPage(await browser.request(href(path, {}, { q }), visit), 'Contacts/Index')).props
 
 describe('contacts', () => {
   test('a contact at a company shows on the company’s page, with their deals', async () => {
-    const browser = await register(await freshEnv(), 'Ada')
+    const browser = await member(await freshEnv(), 'Ada')
     const company = await createCompany(browser, { name: 'Northwind', industry: 'Wholesale' })
     const res = await browser.request(paths.contacts, send('POST', {
       name: 'Grace Hopper',
@@ -40,7 +40,7 @@ describe('contacts', () => {
   })
 
   test('the list searches names, emails, titles and companies, and counts open deals', async () => {
-    const browser = await register(await freshEnv(), 'Ada')
+    const browser = await member(await freshEnv(), 'Ada')
     const northwind = await createCompany(browser, { name: 'Northwind' })
     const grace = await createContact(browser, { name: 'Grace Hopper', companyId: northwind })
     await createContact(browser, { name: 'Alan Turing', email: 'alan@bletchley.example' })
@@ -61,7 +61,7 @@ describe('contacts', () => {
   })
 
   test('a search’s % and _ match only themselves', async () => {
-    const browser = await register(await freshEnv(), 'Ada')
+    const browser = await member(await freshEnv(), 'Ada')
     await createContact(browser, { name: 'Grace Hopper' })
     await createContact(browser, { name: '100% Grace' })
 
@@ -74,7 +74,7 @@ describe('contacts', () => {
   })
 
   test('editing a contact can move them to another company, or none', async () => {
-    const browser = await register(await freshEnv(), 'Ada')
+    const browser = await member(await freshEnv(), 'Ada')
     const company = await createCompany(browser)
     const id = await createContact(browser)
     const contact = href(paths.contact, { contact: id })
@@ -92,7 +92,7 @@ describe('contacts', () => {
   })
 
   test('deleting a contact keeps their deals', async () => {
-    const browser = await register(await freshEnv(), 'Ada')
+    const browser = await member(await freshEnv(), 'Ada')
     const contact = await createContact(browser)
     const deal = await createDeal(browser, { contactId: contact })
 
@@ -104,8 +104,8 @@ describe('contacts', () => {
 
   test('another member’s contact is a 404, and a contact can’t name their company', async () => {
     const env = await freshEnv()
-    const ada = await register(env, 'Ada')
-    const grace = await register(env, 'Grace')
+    const ada = await member(env, 'Ada')
+    const grace = await member(env, 'Grace')
     const theirs = await createContact(grace)
     const theirCompany = await createCompany(grace)
 
@@ -125,7 +125,7 @@ describe('contacts', () => {
 
 describe('companies', () => {
   test('the list counts each company’s people and open pipeline, and searches industries', async () => {
-    const browser = await register(await freshEnv(), 'Ada')
+    const browser = await member(await freshEnv(), 'Ada')
     const northwind = await createCompany(browser, { name: 'Northwind', industry: 'Wholesale' })
     await createCompany(browser, { name: 'Globex', industry: 'Manufacturing', website: 'https://globex.example' })
     await createContact(browser, { companyId: northwind })
@@ -147,7 +147,7 @@ describe('companies', () => {
   })
 
   test('a website must be a web address', async () => {
-    const browser = await register(await freshEnv(), 'Ada')
+    const browser = await member(await freshEnv(), 'Ada')
     await browser.request(paths.newCompany, visit)
     const res = await browser.request(paths.companies, send('POST', { name: 'Northwind', website: 'javascript:alert(1)', industry: null, notes: null }))
     const form = await readPage(await browser.follow(res), 'Companies/Create')
@@ -157,8 +157,8 @@ describe('companies', () => {
 
   test('another member’s company is a 404, to read, change or delete', async () => {
     const env = await freshEnv()
-    const ada = await register(env, 'Ada')
-    const grace = await register(env, 'Grace')
+    const ada = await member(env, 'Ada')
+    const grace = await member(env, 'Grace')
     const id = await createCompany(ada)
     const company = href(paths.company, { company: id })
 

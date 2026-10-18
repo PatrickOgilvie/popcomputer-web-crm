@@ -15,6 +15,13 @@
       "when": 1792274931657,
       "tag": "0001_owner_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792338314107,
+      "tag": "0002_guests",
+      "breakpoints": true
     }
   ]
 }

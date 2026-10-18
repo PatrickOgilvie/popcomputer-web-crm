@@ -142,7 +142,8 @@ const Dashboard: WebPage<'Dashboard'> = ({
   companyCount,
 }) => {
   const { auth } = usePage().props
-  const firstName = auth.user?.name.trim().split(/\s+/)[0] || 'there'
+  // A guest's name, such as Curious Otter, reads as a whole.
+  const firstName = (auth.user?.isAnonymous ? auth.user.name : auth.user?.name.trim().split(/\s+/)[0]) || 'there'
   const openValue = stages.reduce((total, stage) => total + stage.value, 0)
   const openCount = stages.reduce((total, stage) => total + stage.count, 0)
   const weighted = stages.reduce((total, stage) => total + stage.value * stageStyles[stage.stage].probability, 0)

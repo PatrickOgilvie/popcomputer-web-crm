@@ -7,7 +7,7 @@ An example application made from the
 CRM with a drag-and-drop pipeline, contacts, companies, a timeline on every
 record, and tasks.
 
-**Live at [crm.web.popcomputer.com](https://crm.web.popcomputer.com).** Sign up to try it: your deals, contacts and companies are yours alone.
+**Live at [crm.web.popcomputer.com](https://crm.web.popcomputer.com).** Choose Start the demo: you’re signed in as a guest of your own, with a sample CRM to change, and no email or password.
 
 React pages served by Inertia from a Cloudflare Worker, with Effect actions,
 D1 and Better Auth, built on
@@ -57,8 +57,12 @@ export const moveDeal = action(
   upcoming. Tick one off from anywhere it shows.
 - **A dashboard.** The open pipeline, a forecast weighted by each stage's
   odds, what was won in the last 30 days, what's closing soon and what's due.
-- **Accounts and signed-in devices**, as the template has them: Better Auth,
-  with attempts limited per address and per account.
+- **Guests, not accounts.** Start the demo signs a visitor in as a guest of
+  their own, through Better Auth's anonymous plugin, with a name such as
+  Curious Otter. Nobody registers, and there's no password. Each guest gets
+  the sample CRM in `src/demo.ts`, written in one batch as they sign in, and
+  the daily Cron Trigger deletes guests, with everything they made, after a
+  week.
 
 Each member's CRM is their own. Each page ends with an "Under the hood" panel
 naming the action that answers it and what the framework guarantees there.
@@ -206,38 +210,19 @@ the id.
 If the address shows portless's "404 - Not Found" page, the app isn't running:
 start it with `bun run dev`, whatever command that page suggests.
 
-To try a form from a terminal, post its fields with curl, which the app
-answers as a command-line client: a form that fails validation gets a 422
-with the errors as JSON, and a sign-up or sign-in a 303 to `/` with its
-session cookie, which curl keeps in `cookies.txt` (git ignores it). Send the
-`Origin` a browser would: Better Auth refuses a sign-up or sign-in without
-one, here as in production. Put your app's name in place of `my-app`. The
-example signs up `sam@example.com`, since `bun run db:seed` creates
-`ada@example.com`.
+To start the demo from a terminal, post to `/login` with curl, which the
+app answers as a command-line client: a 303 with the guest's session cookie,
+which curl keeps in `cookies.txt` (git ignores it). Send the `Origin` a
+browser would: Better Auth refuses a sign-in without one, here as in
+production. Put your app's name in place of `my-app`.
 
 ```bash
-curl -isS https://my-app.localhost/register -c cookies.txt \
-  -H 'Origin: https://my-app.localhost' \
-  --data-urlencode 'name=Sam' --data-urlencode 'email=sam@example.com' \
-  --data-urlencode 'password=at least twelve characters'
+curl -isS -X POST https://my-app.localhost/login -c cookies.txt \
+  -H 'Origin: https://my-app.localhost'
 curl -sS -b cookies.txt https://my-app.localhost/
 ```
 
-Signed in, the second command prints the dashboard's HTML page, with your name
-in the page data it carries; signed out, it prints the JSON 401. A browser that
-isn't signed in is sent from `/` to the sign-in page, which a browser's headers
-show: `curl -isS -A Mozilla/5.0 -H 'Accept: text/html' https://my-app.localhost/`
-answers 302 with `location: /login?redirect=%2F`.
-
-Signing in posts the email and password to `/login` the same way; a wrong
-password gets a 422.
-
-```bash
-curl -isS https://my-app.localhost/login -c cookies.txt \
-  -H 'Origin: https://my-app.localhost' \
-  --data-urlencode 'email=sam@example.com' \
-  --data-urlencode 'password=at least twelve characters'
-```
+Signed in, the second command prints the dashboard's HTML page, with the guest's name in the page data it carries; signed out, it prints the JSON 401.
 
 Without the portless service, `bun run dev` asks for your password the first
 time it runs, and again after a restart. `PORTLESS=0 bun run dev` skips
@@ -292,21 +277,16 @@ bun run db:seed
 ```
 
 It deletes everything in the local database, applies the migrations to a
-new one, then runs `src/seed.ts`. Its seed creates a member to sign in as,
-`ada@example.com` with the password `at least twelve characters`, with seven
-companies, eleven people, deals in every stage, and a timeline with tasks due
-around today. A seed exports a function that
+new one, then runs `src/seed.ts`, which here adds nothing: each guest who
+starts the demo gets the sample CRM in `src/demo.ts` as their own, locally as
+on Cloudflare. A seed exports a function that
 takes the database and the Worker's bindings, and inserts with Drizzle, so
 `bun run check` reports a seed a schema change has broken:
 
 ```ts
 // src/seed.ts
-export async function seed(db: Database, env: Bindings): Promise<void> {
-  // Through Better Auth, as the sign-up form does, so the password signs in.
-  const auth = createAuth({ db, secret: env.BETTER_AUTH_SECRET, baseURL: 'http://localhost' })
-  const { user } = await auth.api.signUpEmail({ body: { ...seedMember } })
-
-  await db.insert(companies).values({ userId: user.id, name: 'Northwind Traders' })
+export async function seed(db: Database): Promise<void> {
+  await db.insert(user).values({ id: 'seed-sam', name: 'Sam', email: 'sam@example.invalid', emailVerified: false })
 }
 ```
 

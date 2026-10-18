@@ -82,17 +82,10 @@ export const ActivityWithSubject = activityFields.mapFields((fields) => ({
 
 export const StageTotal = S.Struct({ stage: DealStage, count: S.Number, value: S.Number })
 
-// A signed-in device: never its token, which only Better Auth reads.
-export const Session = tableSchema(schema.session).mapFields((fields) => ({
-  ...Struct.pick(fields, ['id', 'ipAddress', 'userAgent', 'createdAt', 'updatedAt', 'expiresAt']),
-  current: S.Boolean,
-}))
-
 const Prefill = S.Struct({ stage: DealStage, companyId: S.NullOr(S.String), contactId: S.NullOr(S.String) })
 
 export const pages = {
   'Auth/Login': S.Struct({}),
-  'Auth/Register': S.Struct({}),
   Dashboard: S.Struct({
     stages: S.Array(StageTotal),
     wonLast30Days: S.Struct({ count: S.Number, value: S.Number }),
@@ -125,5 +118,4 @@ export const pages = {
     openCount: S.Number,
     doneCount: S.Number,
   }),
-  'Sessions/Index': S.Struct({ sessions: S.Array(Session) }),
 }
